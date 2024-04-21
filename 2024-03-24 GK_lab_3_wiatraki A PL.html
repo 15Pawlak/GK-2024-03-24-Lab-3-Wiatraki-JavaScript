@@ -1,0 +1,217 @@
+<!DOCTYPE html>
+<html lang="en">
+
+
+<head>
+    <meta charset="UTF-8">
+    <title>Lab 3, Paweł Lech, hierarchia</title>
+    <style>
+        //Stylizacja body oraz płótna (canvas)
+        body {
+            margin: 0;
+            display: flex; //Centrowanie zawartości
+            justify-content: center;
+            align-items: center;
+            height: 100vh;  //Pełna wysokość widoku
+            
+            background: #00b8ad;
+        }
+
+
+        canvas {
+            border: 1px solid black;
+            background: white;
+        }
+
+        h2 {
+
+            position: absolute;
+            top: 0%;
+            left: 50%;
+            transform: translateX(-90%);
+        }
+    </style>
+</head>
+
+<body>
+    <h2>Lab 3, Paweł Lech, hierarchia</h2>
+    <canvas id="canvas" width="800" height="600"></canvas>
+
+
+
+    <script>
+       // Funkcja rysująca podporę
+
+        function drawFulcrum(ctx, x, y, height, baseHalfWidth, color) {
+            ctx.fillStyle = color; // Kolor wypełnienia
+            ctx.beginPath(); // Rozpoczęcie ścieżki
+            // Rysowanie trójkąta
+            ctx.moveTo(x, y - height); // Początek wierzchołka
+            ctx.lineTo(x - baseHalfWidth, y); // Lewy dolny róg
+            ctx.lineTo(x + baseHalfWidth, y); // Prawy dolny róg
+            ctx.closePath(); // Zamknięcie ścieżki
+            ctx.fill(); // Wypełnienie kształtu
+        }
+        function drawBar(ctx, x, y, length, width, angle) {
+            ctx.fillStyle = 'red';
+            ctx.save();
+            ctx.translate(x, y);
+            ctx.rotate(angle * Math.PI / 180);
+            ctx.fillRect(-length / 2, -width / 2, length, width);
+            ctx.restore();
+        }
+
+        function drawWheel(ctx, x, y, sideLength, angle) {
+            let radius = sideLength / (2 * Math.sin(Math.PI / 5));
+            ctx.save();
+            ctx.translate(x, y);
+            ctx.rotate(angle * Math.PI / 180);
+            ctx.beginPath();
+            for (let i = 0; i <= 5; i++) {
+                ctx.lineTo(
+                    radius * Math.cos(i * 2 * Math.PI / 5),
+                    radius * Math.sin(i * 2 * Math.PI / 5)
+                );
+            }
+            ctx.closePath();
+            ctx.stroke();
+            for (let i = 0; i < 8; i++) {
+                ctx.beginPath();
+                ctx.moveTo(0, 0);
+                ctx.lineTo(
+                    radius * Math.cos(i * 2 * Math.PI / 8),
+                    radius * Math.sin(i * 2 * Math.PI / 8)
+                );
+                ctx.stroke();
+
+            }
+            ctx.restore();
+        }
+
+
+        // Klasy
+        // Klasa reprezentująca podporę
+        
+        class Fulcrum {
+            constructor(x, y, height, baseHalfWidth, color) {
+                this.x = x;
+                this.y = y;
+                this.height = height;
+                this.baseHalfWidth = baseHalfWidth;
+                this.color = color;
+            }
+
+            draw(ctx) {
+                drawFulcrum(ctx, this.x, this.y, this.height, this.baseHalfWidth, this.color);
+            }
+        }
+        // Klasa reprezentująca pręt
+
+        class Bar {
+            constructor(length, width) {
+                this.length = length;
+                this.width = width;
+            }
+
+            draw(ctx, x, y, angle) {
+                drawBar(ctx, x, y, this.length, this.width, angle);
+            }
+        }
+        // Klasa reprezentująca koło
+        class Wheel {
+            constructor(x, y, sideLength, angle)
+            {
+                this.x = x;
+                this.y = y;
+                this.sideLength = sideLength;
+                this.angle = angle;
+            }
+
+            draw(ctx) {
+                drawWheel(ctx, this.x, this.y, this.sideLength, this.angle);
+            }
+
+            updateAngle() {
+                this.angle = (this.angle - 2) % 360;
+            }
+        }
+        // Klasa reprezentująca scene
+
+        class Scene {
+            constructor(canvasId) 
+            {
+                this.canvas = document.getElementById(canvasId);
+                this.ctx = this.canvas.getContext('2d');
+                this.width = this.canvas.width;
+                this.height = this.canvas.height;
+
+                this.fulcrums = [
+                    new Fulcrum(this.width * 0.28, this.height * 0.41, 80, 17, "#0002cf"),  // purpura
+                    new Fulcrum(this.width * 0.57, this.height * 0.70, 95, 20, "#004ecf"),   // niebierski
+                    new Fulcrum(this.width * 0.80, this.height * 0.29, 63, 16, "#00a281")  // zielony
+                ];
+                this.bars = [
+
+                    new Bar(155, 8),
+                    new Bar(185, 10),
+                    new Bar(138, 9)
+                ];
+                this.wheels = [
+                    [
+                        new Wheel(-75, 0, 26, 0),
+                        new Wheel(75, 0, 26, 0)
+                    ],
+                    [
+                        new Wheel(-93, 0, 32, 0),
+                        new Wheel(93, 0, 32, 0)
+                    ],
+                    [
+                        new Wheel(-68, 0, 18, 0),
+                        new Wheel(68, 0, 18, 0)
+                    ]
+                ];
+                this.angles = [0, 0, 0];
+            }
+
+            clearCanvas() {
+                this.ctx.clearRect(0, 0, this.width, this.height);
+            }
+
+            draw()
+            {
+                this.clearCanvas();
+                const ctx = this.ctx;
+                this.fulcrums.forEach((fulcrum, index) => {
+
+                    fulcrum.draw(ctx);
+                    this.bars[index].draw(ctx, fulcrum.x, fulcrum.y - fulcrum.height, this.angles[index]);
+                    ctx.save();
+
+                    ctx.translate(fulcrum.x, fulcrum.y - fulcrum.height);
+                    ctx.rotate(this.angles[index] * Math.PI / 180);
+                    this.wheels[index].forEach(wheel => wheel.draw(ctx));
+                    ctx.restore();
+
+                });
+            }
+
+
+            animate()
+            {
+
+                this.draw();
+                this.angles = this.angles.map(angle => (angle + 1) % 360);
+                this.wheels.flat().forEach(wheel => wheel.updateAngle());
+                requestAnimationFrame(() => this.animate());
+            }
+        }
+        // Inicjalizacja i animacja sceny
+        const scene = new Scene('canvas');
+        scene.animate();
+
+    </script>
+    
+</body>
+
+
+</html>

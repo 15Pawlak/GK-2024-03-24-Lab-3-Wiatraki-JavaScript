@@ -1,0 +1,193 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <title>Lab 3, Paweł Lech, B</title>
+    <style>
+        body {
+            margin: 0;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            height: 100vh;
+            background: #00b8ad;
+        }
+
+        canvas {
+            border: 1px solid rgb(14, 0, 0);
+            background: rgb(244, 241, 241);
+        }
+
+        h2 {
+            position: absolute;
+            top: 0%;
+            left: 50%;
+            transform: translateX(-50%);
+        }
+    </style>
+</head>
+
+<body>
+    <h2>Lab 3, Paweł Lech, hierarchia</h2>
+    <canvas id="canvas" width="800" height="600"></canvas>
+
+    <script>
+        class Fulcrum
+         {
+            constructor(x, y, height, baseHalfWidth, color, ctx) {
+                this.x = x;
+                this.y = y;
+                this.height = height;
+                this.baseHalfWidth = baseHalfWidth;
+                this.color = color;
+                this.ctx = ctx;
+            }
+
+            draw()
+            {
+                this.ctx.fillStyle = this.color;
+                this.ctx.beginPath();
+                this.ctx.moveTo(this.x, this.y - this.height);
+                this.ctx.lineTo(this.x - this.baseHalfWidth, this.y);
+                this.ctx.lineTo(this.x + this.baseHalfWidth, this.y);
+                this.ctx.closePath();
+                this.ctx.fill();
+            }
+        }
+
+        class Bar
+        {
+            constructor(length, width, ctx) {
+                this.length = length;
+                this.width = width;
+                this.ctx = ctx;
+            }
+
+            draw(x, y, angle) {
+                this.ctx.fillStyle = 'red';
+                this.ctx.save();
+                this.ctx.translate(x, y);
+                this.ctx.rotate(angle * Math.PI / 180);
+                this.ctx.fillRect(-this.length / 2, -this.width / 2, this.length, this.width);
+                this.ctx.restore();
+            }
+        }
+
+        class Wheel
+        {
+            constructor(x, y, sideLength, angle, ctx) {
+                this.x = x;
+                this.y = y;
+                this.sideLength = sideLength;
+                this.angle = angle;
+                this.ctx = ctx;
+            }
+
+            draw() {
+                let radius = this.sideLength / (2 * Math.sin(Math.PI / 5));
+                this.ctx.save();
+                this.ctx.translate(this.x, this.y);
+                this.ctx.rotate(this.angle * Math.PI / 180);
+                this.ctx.beginPath();
+                for (let i = 0; i <= 5; i++) {
+                    this.ctx.lineTo(
+                        radius * Math.cos(i * 2 * Math.PI / 5),
+                        radius * Math.sin(i * 2 * Math.PI / 5)
+                    );
+                }
+                this.ctx.closePath();
+                this.ctx.stroke();
+                for (let i = 0; i < 5; i++) {
+                    this.ctx.beginPath();
+                    this.ctx.moveTo(0, 0);
+                    this.ctx.lineTo(
+                        radius * Math.cos(i * 2 * Math.PI / 5),
+                        radius * Math.sin(i * 2 * Math.PI / 5)
+                    );
+                    this.ctx.stroke();
+                }
+                this.ctx.restore();
+            }
+
+            updateAngle() {
+                this.angle = (this.angle - 2) % 360;
+            }
+        }
+
+        class Scene
+        {
+            constructor(canvasId) {
+                this.canvas = document.getElementById(canvasId);
+                this.ctx = this.canvas.getContext('2d');
+                this.width = this.canvas.width;
+                this.height = this.canvas.height;
+
+
+                this.fulcrums = [
+                   
+                    new Fulcrum(this.width * 0.28, this.height * 0.41, 80, 17, "#0002cf", this.ctx),
+                    new Fulcrum(this.width * 0.57, this.height * 0.70, 95, 20, "#004ecf", this.ctx),
+                    new Fulcrum(this.width * 0.80, this.height * 0.29, 63, 16, "#00a281", this.ctx)
+                ];
+                this.bars = [
+
+                    new Bar(155, 8, this.ctx),
+                    new Bar(185, 10, this.ctx),
+                    new Bar(138, 9, this.ctx)
+                ];
+
+                this.wheels = [
+                    [
+                        new Wheel(-75, 0, 26, 0, this.ctx),
+                        new Wheel(75, 0, 26, 0, this.ctx)
+                    ],
+                    [
+                        new Wheel(-93, 0, 32, 0, this.ctx),
+                        new Wheel(93, 0, 32, 0, this.ctx)
+                    ],
+                    [
+                        new Wheel(-68, 0, 18, 0, this.ctx),
+                        new Wheel(68, 0, 18, 0, this.ctx)
+                    ]
+                ];
+                this.angles = [0, 0, 0];
+            }
+
+            clearCanvas() {
+                this.ctx.clearRect(0, 0, this.width, this.height);
+            }
+
+            draw() {
+
+                this.clearCanvas();
+                this.fulcrums.forEach((fulcrum, index) => {
+                    fulcrum.draw();
+
+                    this.bars[index].draw(fulcrum.x, fulcrum.y - fulcrum.height, this.angles[index]);
+                    this.ctx.save();
+
+                    this.ctx.translate(fulcrum.x, fulcrum.y - fulcrum.height);
+                    this.ctx.rotate(this.angles[index] * Math.PI / 180);
+                    this.wheels[index].forEach(wheel => wheel.draw());
+                    this.ctx.restore();
+                });
+            }
+
+            animate() 
+            {
+                this.draw();
+                this.angles = this.angles.map(angle => (angle + 1) % 360);
+                this.wheels.flat().forEach(wheel => wheel.updateAngle());
+                requestAnimationFrame(() => this.animate());
+            }
+        }
+
+
+        const scene = new Scene('canvas');
+        scene.animate();
+
+    </script>
+
+</body>
+</html>
